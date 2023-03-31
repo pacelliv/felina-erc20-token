@@ -6,6 +6,8 @@
 
 ### ✨✨ Frontend repo [here](https://github.com/pacelliv/felina-hub)
 
+### ⚡️⚡️ API repo [here](https://github.com/pacelliv/felina-api)
+
 ## Overview
 
 An ERC-20 is the technical standard for fungible tokens in the Ethereum blockchain, a fungible token is interchangeable with another tokens. By following standards tokens have a property that makes them exactly the same.
