@@ -85,7 +85,7 @@ This project has a 100% of coverage over the functions of the contracts.
 yarn hardhat coverage
 ```
 
-## Testing on Göerli
+## Testing on Sepolia
 
 1. Set up environment variables:
 
