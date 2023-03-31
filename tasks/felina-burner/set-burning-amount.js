@@ -14,7 +14,7 @@ task("set-burning-amount", "Sets a new amount of tokens to periodically burn")
             ? 1
             : VERIFICATION_BLOCK_CONFIRMATIONS
 
-        console.log("\n", "\t", `🔥 Setting ${value} tokens as the burning amount`, "\n")
+        console.log("\n", "\t", `🔥 Setting ${value} tokens as the burning amount`)
 
         const transactionRespone = await felinaBurner.setBurningAmount(value)
 
