@@ -1,17 +1,19 @@
 {
-  "name": "erc-20-sybil-token",
+  "name": "erc-20-felina-token",
   "license": "MIT",
   "version": "1.0.0",
-  "description": "A repo for creating an ERC-20 token, its faucet and a burner contract using Chainlink Automation",
+  "description": "A repo for creating an ERC-20 token and a burner contract using Chainlink Automation",
   "scripts": {
+    "clean": "yarn hardhat clean",
     "compile": "yarn hardhat compile",
     "test": "yarn hardhat test",
-    "test-staging": "hardhat test --network goerli",
+    "test-staging": "yarn hardhat test --network polygonMumbai",
     "deploy": "yarn hardhat deploy",
     "lint": "solhint 'contracts/*.sol'",
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
     "format": "prettier --write .",
-    "coverage": "hardhat coverage"
+    "coverage": "yarn hardhat coverage",
+    "chain": "yarn hardhat node"
   },
   "devDependencies": {
     "@chainlink/contracts": "0.5.1",

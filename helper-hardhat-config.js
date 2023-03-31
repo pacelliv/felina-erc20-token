@@ -2,6 +2,7 @@ const networkConfig = {
     5: {
         name: "goerli",
         ethUsdPriceFeed: "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e",
+        subscriptionId: "4622",
     },
     31337: {
         name: "localhost",
@@ -9,33 +10,39 @@ const networkConfig = {
     80001: {
         name: "polygonMumbai",
         ethUsdPriceFeed: "0x0715A7794a1dc8e42615F059dD6e406A6594651A",
+        subscriptionId: "3746",
+    },
+    11155111: {
+        name: "sepolia",
+        ethUsdPriceFeed: "0x694AA1769357215DE4FAC081bf1f309aDC325306",
+        subscriptionId: "185",
     },
 }
 
 const developmentChains = ["hardhat", "localhost"]
 const VERIFICATION_BLOCK_CONFIRMATIONS = 6
 
-// SybilToken constructor arguments:
-TOKEN_NAME = "Sybil"
-TOKEN_SYMBOL = "SYL"
-INITIAL_SUPPLY = "1000000000"
-TARGET_SUPPLY = "500000000"
+// FelinaToken constructor arguments:
+const TOKEN_NAME = "Felina"
+const TOKEN_SYMBOL = "FEL"
+const INITIAL_SUPPLY = "1000000000"
+const TARGET_SUPPLY = "500000000"
+const BLOCK_REWARD = "5"
 
-// SybilFaucet constructor arguments:
-const INITIAL_TOKEN_AMOUNT = "10000000000000000000" // 10 SYL
-const INITIAL_LOCK_TIME = "600"
-
-// SybilBurner constructor arguments:
+// FelinaBurner constructor arguments:
 const BURN_AMOUNT = "137000"
 const BURNING_INTERVAL = "86400"
 
-// Frontend files paths:
-const FRONTEND_TOKEN_ABI = "../sybil-explorer/constants/sybilTokenAbi.json"
-const FRONTEND_TOKEN_ADDRESSES = "../sybil-explorer/constants/sybilTokenContractAddresses.json"
-const FRONTEND_FAUCET_ABI = "../sybil-explorer/constants/sybilFaucetAbi.json"
-const FRONTEND_FAUCET_ADDRESSES = "../sybil-explorer/constants/sybilFaucetContractAddresses.json"
-const FRONTEND_BURNER_ABI = "../sybil-explorer/constants/sybilBurnerAbi.json"
-const FRONTEND_BURNER_ADDRESSES = "../sybil-explorer/constants/sybilBurnerContractAddresses.json"
+// Frontend and server files paths:
+const FRONTEND_TOKEN_ABI = "../felina-explorer/src/constants/felinaTokenAbi.json"
+const SERVER_TOKEN_ABI = "../felina-web3-backend/utils/constants/felinaTokenAbi.json"
+const FRONTEND_TOKEN_ADDRESSES =
+    "../felina-explorer/src/constants/felinaTokenContractAddresses.json"
+const SERVER_TOKEN_ADDRESSES =
+    "../felina-web3-backend/utils/constants/felinaTokenContractAddresses.json"
+const FRONTEND_BURNER_ABI = "../felina-explorer/src/constants/felinaBurnerAbi.json"
+const FRONTEND_BURNER_ADDRESSES =
+    "../felina-explorer/src/constants/felinaBurnerContractAddresses.json"
 
 module.exports = {
     networkConfig,
@@ -47,10 +54,9 @@ module.exports = {
     BURN_AMOUNT,
     BURNING_INTERVAL,
     TARGET_SUPPLY,
-    INITIAL_TOKEN_AMOUNT,
-    INITIAL_LOCK_TIME,
-    FRONTEND_FAUCET_ABI,
-    FRONTEND_FAUCET_ADDRESSES,
+    BLOCK_REWARD,
+    SERVER_TOKEN_ABI,
+    SERVER_TOKEN_ADDRESSES,
     FRONTEND_TOKEN_ABI,
     FRONTEND_TOKEN_ADDRESSES,
     FRONTEND_BURNER_ABI,
