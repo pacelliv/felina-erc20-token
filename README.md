@@ -38,7 +38,7 @@ The following functions are not required but enhance token usability:
 
 ### Contracts of the project
 
-- `FelinaToken.sol`: contract of the token, the initial supply is 1,000,000,000 tokens The supply will be  reduced every 24hrs by the burner contract until it reaches the target supply of to 500,000,000 tokens. This token is ERC-20 compliant.
+- `FelinaToken.sol`: contract of the token, the initial supply is 1,000,000,000 tokens The supply will be  reduced every 24hrs by the burner contract until it reaches the target supply of to 500,000,000 tokens. On every transfer of tokens, a reward of 5 FEL is send to the validator that mines the transaction. This token is ERC-20 compliant.
 
 - `FelinaBurner.sol`: Using [Chainlink Automation](https://chain.link/automation), this contract removes 137,000 tokens from circulation every 24hrs.
 
