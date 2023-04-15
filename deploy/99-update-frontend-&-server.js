@@ -11,7 +11,7 @@ const {
 require("dotenv").config()
 
 module.exports = async () => {
-    const UPDATE_FRONTEND = true
+    const UPDATE_FRONTEND = false
     let felinaToken, felinaBurner, chainId
 
     if (UPDATE_FRONTEND) {
