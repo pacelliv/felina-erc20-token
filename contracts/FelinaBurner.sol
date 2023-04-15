@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
 
 interface IFelinaToken {
-    event Burn(address indexed _from, uint256 _value);
-
     function burnFrom(address _from, uint256 _value) external returns (bool success);
 
     function totalSupply() external view returns (uint256);
@@ -63,28 +61,28 @@ contract FelinaBurner is AutomationCompatibleInterface, Ownable {
     /**
      * @dev Reads the last block.timestamp
      */
-    function getLastTimestamp() external view returns (uint256) {
+    function lastTimestamp() external view returns (uint256) {
         return s_lastTimestamp;
     }
 
     /**
      * @dev Reads the daily burn amount of tokens by the contract
      */
-    function getDailyBurnAmount() external view returns (uint256) {
+    function dailyBurnAmount() external view returns (uint256) {
         return s_dailyBurnAmount;
     }
 
     /**
      * @dev Reads the burning interval
      */
-    function getBurningInterval() external view returns (uint256) {
+    function burningInterval() external view returns (uint256) {
         return s_burningInterval;
     }
 
     /**
      * @dev Reads the instance of FelinaToken.
      */
-    function getToken() external view returns (IFelinaToken) {
+    function token() external view returns (IFelinaToken) {
         return i_felinaToken;
     }
 
@@ -98,7 +96,7 @@ contract FelinaBurner is AutomationCompatibleInterface, Ownable {
     /**
      * @dev Reads the amount of decimals
      */
-    function getDecimals() external pure returns (uint256) {
+    function decimals() external pure returns (uint256) {
         return DECIMALS;
     }
 
