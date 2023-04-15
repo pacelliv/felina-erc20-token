@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./interfaces/IFelinaToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -16,7 +15,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
 
-contract FelinaToken is IFelinaToken, Ownable {
+contract FelinaToken is Ownable {
     string private s_name;
     string private s_symbol;
     uint256 private s_blockReward;
@@ -26,7 +25,15 @@ contract FelinaToken is IFelinaToken, Ownable {
     mapping(address => uint256) private s_balances;
     mapping(address => mapping(address => uint256)) private s_allowances;
 
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event Burn(address indexed _from, uint256 _value);
+
+    error FelinaToken__ValueExceedsAllowance(uint256 value, uint256 remainingAllowance);
+    error FelinaToken__AddressZero();
+    error FelinaToken__SupplyDecreasedBelowTargetSupply();
+    error FelinaToken__ValueExceedsAccountBalance(uint256 value, uint256 balance);
+    error FelinaToken__Underflow(uint256 remainingAllowance, uint256 subtractedValue);
 
     /**
      * @dev Sets the values for {s_name}, {s_symbol}, {s_totalSupply}, {i_initialSupply}
@@ -34,33 +41,33 @@ contract FelinaToken is IFelinaToken, Ownable {
      *
      * The value of {DECIMALS} is 18.
      *
-     * Allocates the entire supply to the creator of the token.
+     * Allocates the entire initial supply to the creator of the token.
      */
     constructor(
-        string memory tokenName,
-        string memory tokenSymbol,
-        uint256 initialSupply,
-        uint256 targetSupply,
-        uint256 blockReward
+        string memory _tokenName,
+        string memory _tokenSymbol,
+        uint256 _initialSupply,
+        uint256 _targetSupply,
+        uint256 _blockReward
     ) {
-        s_name = tokenName;
-        s_symbol = tokenSymbol;
-        s_totalSupply = initialSupply * 10 ** uint256(DECIMALS);
-        i_targetSupply = targetSupply * 10 ** uint256(DECIMALS);
-        s_blockReward = blockReward * 10 ** uint256(DECIMALS);
+        s_name = _tokenName;
+        s_symbol = _tokenSymbol;
+        s_totalSupply = _initialSupply * 10 ** uint256(DECIMALS);
+        i_targetSupply = _targetSupply * 10 ** uint256(DECIMALS);
+        s_blockReward = _blockReward * 10 ** uint256(DECIMALS);
         s_balances[msg.sender] = s_totalSupply;
     }
 
     /**
      * @notice Moves `_value` tokens from caller's account to `_to` recipient.
-     * Call this function ONLY to transfer tokens to a Externally Owned Account.
+     * Call this function ONLY to transfer tokens to an Externally Owned Account.
      * @param _to Address of the recipient.
-     * @param _value Amount of tokens.
-     * @return success True in case of successful transfer, false otherwise.
+     * @param _value Amount of tokens to be transferred.
+     * @return success True in case of a successful transaction, false otherwise.
      */
     function transfer(address _to, uint256 _value) public returns (bool success) {
         _transfer(msg.sender, _to, _value);
-        return true;
+        success = true;
     }
 
     /**
@@ -72,99 +79,106 @@ contract FelinaToken is IFelinaToken, Ownable {
      * @param _from Account from which the tokens will be moved.
      * @param _to Address of the recipient of tokens.
      * @param _value Amount of tokens to be moved.
-     * @return success A boolean to indicate if the transaction was successful.
+     * @return success True in case of a successful transaction, false otherwise.
      */
     function transferFrom(
         address _from,
         address _to,
         uint256 _value
     ) public returns (bool success) {
-        require(
-            _value <= s_allowances[_from][msg.sender],
-            "FEL: Value exceeds the remaining allowance"
-        );
-
+        if (_value > s_allowances[_from][msg.sender]) {
+            revert FelinaToken__ValueExceedsAllowance(_value, s_allowances[_from][msg.sender]);
+        }
         s_allowances[_from][msg.sender] -= _value;
         _transfer(_from, _to, _value);
-        return true;
+        success = true;
     }
 
     /**
-     * @notice Sets `_value` as the allowance for a `_spender`. Allows `_spender`
-     * to spend no more than `_value` tokens on your behalf.
-     * @dev Calling this function to change the allowance bring th risk of a `_spender`
+     * @notice Sets `_value` as the allowance for `_spender`. Allows `_spender` to spend
+     * no more than `_value` tokens on your behalf.
+     * @dev Calling this function to change the allowance brings the risk of a `_spender`
      * using both the old and new allowance by unfortunate transaction ordering. To
      * reduce the risk is recommended to first reduce the old allowance to zero and then
      * set a new allowance with the desire `_value`.
      * See: https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
      * @param _spender The address of the account authorized to spend.
      * @param _value Max amount of tokens allowed to spend.
-     * @return success A boolean to indicate if the spender was approved.
+     * @return success True in case of a successful transaction, false otherwise.
      */
     function approve(address _spender, uint256 _value) public returns (bool success) {
         _approve(msg.sender, _spender, _value);
-        return true;
+        success = true;
     }
 
     /**
      * @notice Destroy `_value` tokens irreversibly.
-     * @dev Throws if `_value` exceeds the balance of the account.
+     * @dev Throws if `_value` exceeds the balance of the account. Throws if `_value`
+     * will decrease the supply below `i_targetSupply`.
      * @param _value Amount of tokens to destroy.
-     * @return success A boolean to indicate if the burning of tokens succeeded.
+     * @return success True in case of a successful transaction, false otherwise.
      *
      * Emits a {Burn} event.
      */
     function burn(uint256 _value) public returns (bool success) {
-        require(s_balances[msg.sender] >= _value, "FEL: Value exceeds the account balance");
-        require(s_totalSupply > i_targetSupply, "FEL: Cannot burn more tokens");
+        if (_value > s_balances[msg.sender]) {
+            revert FelinaToken__ValueExceedsAccountBalance(_value, s_balances[msg.sender]);
+        }
+        uint256 newSupply = s_totalSupply - _value;
+        if (newSupply < i_targetSupply) revert FelinaToken__SupplyDecreasedBelowTargetSupply();
         s_totalSupply -= _value;
         s_balances[msg.sender] -= _value;
         emit Burn(msg.sender, _value);
-        return true;
+        success = true;
     }
 
     /**
-     * @notice Destroy tokens from another account.
+     * @notice Destroy tokens irreversibly from another account.
      * @dev Throws if `_value` exceeds the balance of the account. Throws if
      * `_from` is address zero. Throws if target supply has been reached. Throws
      * if `_value` exceeds remaining allowance of the spender address.
      * @param _from Address of the account from which tokens will be destroyed.
      * @param _value Amount of token to destroy.
-     * @return success A boolean to indicate if the burning of tokens succeeded.
+     * @return success True in case of a successful transaction, false otherwise.
      *
      * Emits a {Burn} event.
      */
     function burnFrom(address _from, uint256 _value) public returns (bool success) {
-        require(_from != address(0), "FEL: Cannot burn tokens from address zero");
-        require(s_balances[_from] >= _value, "FEL: Value exceeds the account balance");
-        require(s_totalSupply > i_targetSupply, "FEL: Cannot burn more tokens");
-        require(
-            _value <= s_allowances[_from][msg.sender],
-            "FEL: Value exceeds the remaining allowance"
-        );
+        if (_from == address(0)) revert FelinaToken__AddressZero();
+        if (_value > s_balances[_from]) {
+            revert FelinaToken__ValueExceedsAccountBalance(_value, s_balances[_from]);
+        }
+        if (_value > s_allowances[_from][msg.sender]) {
+            revert FelinaToken__ValueExceedsAllowance(_value, s_allowances[_from][msg.sender]);
+        }
+
+        uint256 newSupply = s_totalSupply - _value;
+        if (newSupply < i_targetSupply) revert FelinaToken__SupplyDecreasedBelowTargetSupply();
 
         s_balances[_from] -= _value;
         s_allowances[_from][msg.sender] -= _value;
         s_totalSupply -= _value;
         emit Burn(_from, _value);
-        return true;
+        success = true;
     }
 
     /**
      * @notice Set the amount of tokens to reward validators for mining
      * transactions of the token.
-     * @param _blockReward Amount of tokens to reward.
      * @dev Throws if caller is not the token owner.
+     * @param _blockReward Amount of tokens to reward.
+     * @return success True in case of a successful transaction, false otherwise.
      */
     function setBlockReward(uint256 _blockReward) external onlyOwner returns (bool success) {
         s_blockReward = _blockReward * 10 ** uint256(DECIMALS);
-        return true;
+        success = true;
     }
 
     /**
      * @notice Increases the allowance of a `_spender`.
      * @param _spender Address of the approved address to act on behalf of msg.sender.
      * @param _addedValue Amount to increase the allowance of the `_spender`.
+     * @return success True in case of a successful transaction, false otherwise.
      */
     function increaseAllowance(
         address _spender,
@@ -172,7 +186,7 @@ contract FelinaToken is IFelinaToken, Ownable {
     ) public returns (bool success) {
         uint256 _currentAllowance = allowance(msg.sender, _spender);
         _approve(msg.sender, _spender, _currentAllowance + _addedValue);
-        return true;
+        success = true;
     }
 
     /**
@@ -180,20 +194,20 @@ contract FelinaToken is IFelinaToken, Ownable {
      * @dev Throws if the `_subtractedValue` will cause underflow.
      * @param _spender Address of the approved address to act on behalf of msg.sender.
      * @param _subtractedValue Amount to decrease the allowance of the `_spender`.
+     * @return success True in case of a successful transaction, false otherwise.
      */
     function decreaseAllowance(
         address _spender,
         uint256 _subtractedValue
     ) public returns (bool success) {
         uint256 _currentAllowance = allowance(msg.sender, _spender);
-        require(
-            _currentAllowance >= _subtractedValue,
-            "FEL: Cannot decrease allowance to a negative value"
-        );
+        if (_currentAllowance < _subtractedValue) {
+            revert FelinaToken__Underflow(_currentAllowance, _subtractedValue);
+        }
         unchecked {
             _approve(msg.sender, _spender, _currentAllowance - _subtractedValue);
         }
-        return true;
+        success = true;
     }
 
     /**
@@ -234,14 +248,14 @@ contract FelinaToken is IFelinaToken, Ownable {
     /**
      * @notice Returns the target supply of the tokens.
      */
-    function getTargetSupply() public view returns (uint256) {
+    function targetSupply() public view returns (uint256) {
         return i_targetSupply;
     }
 
     /**
      *@notice Reads the block reward for the validators.
      */
-    function getBlockReward() public view returns (uint256) {
+    function blockReward() public view returns (uint256) {
         return s_blockReward;
     }
 
@@ -263,9 +277,11 @@ contract FelinaToken is IFelinaToken, Ownable {
      * Emits a {Transfer} event.
      */
     function _transfer(address _from, address _to, uint256 _value) internal {
-        require(_to != address(0), "FEL: Cannot transfer tokens to address zero");
-        require(_from != address(0), "FEL: Cannot transfer tokens from address zero");
-        require(s_balances[_from] >= _value, "FEL: Value exceeds the account balance");
+        if (_to == address(0)) revert FelinaToken__AddressZero();
+        if (_from == address(0)) revert FelinaToken__AddressZero();
+        if (_value > s_balances[_from]) {
+            revert FelinaToken__ValueExceedsAccountBalance(_value, s_balances[_from]);
+        }
         _beforeTokenTransfer(_from, _to);
         s_balances[_from] -= _value;
         s_balances[_to] += _value;
@@ -280,15 +296,16 @@ contract FelinaToken is IFelinaToken, Ownable {
      * Emits a {Approval} event.
      */
     function _approve(address _owner, address _spender, uint256 _value) internal {
-        require(_owner != address(0), "FEL: Cannot approve from address zero");
-        require(_spender != address(0), "FEL: Cannot approve address zero as spender");
+        if (_owner == address(0)) revert FelinaToken__AddressZero();
+        if (_spender == address(0)) revert FelinaToken__AddressZero();
         s_allowances[_owner][_spender] = _value;
         emit Approval(_owner, _spender, _value);
     }
 
     /**
      * @dev This function does not throws. Checks if the coinbase
-     * address should receive the block reward.
+     * address should receive the block reward for mining a transaction
+     * with FEL tokens.
      * @param _from The address of the sender.
      * @param _to The Address of the receipient.
      */
