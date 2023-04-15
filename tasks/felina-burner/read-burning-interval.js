@@ -6,7 +6,7 @@ task(
 ).setAction(async (_, { ethers }) => {
     const felinaBurner = await ethers.getContract("FelinaBurner")
 
-    const burningAmount = await felinaBurner.getBurningInterval()
+    const burningAmount = await felinaBurner.burningInterval()
 
     console.log("\n", "\t", `🔥 Tokens are burned every ${burningAmount} seconds`, "\n")
 })
