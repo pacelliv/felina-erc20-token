@@ -12,9 +12,9 @@ const { developmentChains, BURN_AMOUNT, BURNING_INTERVAL } = require("../../help
               await deployments.fixture(["all"])
               felinaToken = await ethers.getContract("FelinaToken")
               felinaBurner = await ethers.getContract("FelinaBurner")
-              interval = await felinaBurner.getBurningInterval()
-              burnAmount = await felinaBurner.getDailyBurnAmount()
-              tokenAddress = await felinaBurner.getToken()
+              interval = await felinaBurner.burningInterval()
+              burnAmount = await felinaBurner.dailyBurnAmount()
+              tokenAddress = await felinaBurner.token()
               tokenOwner = await felinaBurner.owner()
           })
           describe("constructor", () => {
@@ -37,7 +37,7 @@ const { developmentChains, BURN_AMOUNT, BURNING_INTERVAL } = require("../../help
               it("Sets a new burning rate", async () => {
                   const transactionResponse = await felinaBurner.setBurningAmount("300000")
                   await transactionResponse.wait(1)
-                  const burningAmount = await felinaBurner.getDailyBurnAmount()
+                  const burningAmount = await felinaBurner.dailyBurnAmount()
                   assert.equal(burningAmount.toString(), ethers.utils.parseEther("300000"))
               })
               it("Should revert if an attacker tries to set a new burning rate", async () => {
@@ -54,7 +54,7 @@ const { developmentChains, BURN_AMOUNT, BURNING_INTERVAL } = require("../../help
               it("Sets a new burning interval", async () => {
                   const transactionResponse = await felinaBurner.setBurningInterval("600")
                   await transactionResponse.wait(1)
-                  const newBurningInterval = await felinaBurner.getBurningInterval()
+                  const newBurningInterval = await felinaBurner.burningInterval()
                   assert.equal(newBurningInterval.toString(), "600")
               })
               it("Should revert if an attacker tries to set a new burning interval", async () => {
@@ -130,12 +130,12 @@ const { developmentChains, BURN_AMOUNT, BURNING_INTERVAL } = require("../../help
                   )
               })
               it("Runs and resets the timestamp", async () => {
-                  const startingTimestamp = await felinaBurner.getLastTimestamp()
+                  const startingTimestamp = await felinaBurner.lastTimestamp()
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.send("evm_mine", [])
                   const tx = await felinaBurner.performUpkeep([])
                   await tx.wait(1)
-                  const endingTimestamp = await felinaBurner.getLastTimestamp()
+                  const endingTimestamp = await felinaBurner.lastTimestamp()
                   assert(endingTimestamp > startingTimestamp)
               })
           })
