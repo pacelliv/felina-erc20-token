@@ -6,7 +6,7 @@ task(
 ).setAction(async (_, { ethers }) => {
     const felinaBurner = await ethers.getContract("FelinaBurner")
 
-    const burningAmount = await felinaBurner.getDailyBurnAmount()
+    const burningAmount = await felinaBurner.dailyBurnAmount()
 
     console.log(
         "\n",
