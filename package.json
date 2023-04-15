@@ -7,7 +7,6 @@
     "clean": "yarn hardhat clean",
     "compile": "yarn hardhat compile",
     "test": "yarn hardhat test",
-    "test-staging": "yarn hardhat test --network polygonMumbai",
     "deploy": "yarn hardhat deploy",
     "lint": "solhint 'contracts/*.sol'",
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
