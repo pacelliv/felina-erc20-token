@@ -38,7 +38,7 @@ const {
                   )
               })
               it("Sets the block reward correctly", async () => {
-                  const blockReward = await felinaToken.getBlockReward()
+                  const blockReward = await felinaToken.blockReward()
                   assert.equal(blockReward.toString(), parseInt(BLOCK_REWARD) * multiplier)
               })
           })
@@ -50,7 +50,7 @@ const {
                   await transactionResponse.wait(1)
                   expect((await felinaToken.balanceOf(user1)).toString()).to.equal(value.toString())
               })
-              it("Should emit event on transfering tokens", async () => {
+              it("Should emit an event on transferring tokens", async () => {
                   const value = ethers.utils.parseEther("10")
                   await expect(felinaToken.transfer(user1, value.toString()))
                       .to.emit(felinaToken, "Transfer")
@@ -71,7 +71,7 @@ const {
                       initialDeployerBalance.sub(amountTransfered).toString()
                   )
               })
-              it("Should not send reward to coinbase address if reward is zero", async () => {
+              it("Should not transfer the reward if it is zero", async () => {
                   const setBlockRewardTxResponse = await felinaToken.setBlockReward("0")
                   await setBlockRewardTxResponse.wait(1)
                   const initialDeployerBalance = await felinaToken.balanceOf(deployer)
@@ -94,31 +94,44 @@ const {
               beforeEach(async () => {
                   felinaTokenUser1 = await ethers.getContract("FelinaToken", user1)
               })
-              it("Should approve other addresses to spend tokens", async () => {
+              it("Should approve other addresses as spenders", async () => {
                   const tokensToSpend = ethers.utils.parseEther("10")
-                  await felinaToken.approve(user1, tokensToSpend)
+                  const approveTxResponse = await felinaToken.approve(user1, tokensToSpend)
+                  await approveTxResponse.wait(1)
                   const tokenUser1 = await ethers.getContract("FelinaToken", user1)
-                  await tokenUser1.transferFrom(deployer, user1, tokensToSpend)
+                  const transferFromTxResponse = await tokenUser1.transferFrom(
+                      deployer,
+                      user1,
+                      tokensToSpend
+                  )
+                  await transferFromTxResponse.wait(1)
                   expect((await tokenUser1.balanceOf(user1)).toString()).to.equal(
                       tokensToSpend.toString()
                   )
               })
-              it("Should emit event on approval", async () => {
+              it("Should emit an event on approval", async () => {
                   const tokensToSpend = ethers.utils.parseEther("10")
                   await expect(felinaToken.approve(user1, tokensToSpend))
                       .to.emit(felinaToken, "Approval")
                       .withArgs(deployer, user1, tokensToSpend)
               })
               it("Set the allowance correctly", async () => {
-                  await felinaToken.approve(user1, value)
+                  const approveTxResponse = await felinaToken.approve(user1, value)
+                  await approveTxResponse.wait(1)
                   const allowance = await felinaToken.allowance(deployer, user1)
                   assert.equal(allowance.toString(), value)
               })
-              it("Won't allow spender to go over the allowance", async () => {
-                  await felinaToken.approve(user1, value)
-                  await expect(
-                      felinaTokenUser1.transferFrom(deployer, user1, (40 * multiplier).toString())
-                  ).to.be.revertedWith("FEL: Value exceeds the remaining allowance")
+              it("Should revert if the spender tries to spend beyond the allowance", async () => {
+                  const amount = (40 * multiplier).toString()
+                  const approveTxResponse = await felinaToken.approve(user1, value)
+                  await approveTxResponse.wait(1)
+                  const allowance = await felinaToken.allowance(deployer, user1)
+                  await expect(felinaTokenUser1.transferFrom(deployer, user1, amount))
+                      .to.be.revertedWithCustomError(
+                          felinaToken,
+                          "FelinaToken__ValueExceedsAllowance"
+                      )
+                      .withArgs(amount, allowance.toString())
               })
           })
 
@@ -135,7 +148,7 @@ const {
                   assert.equal(user1Allowance.toString(), ethers.utils.parseEther("20").toString())
               })
 
-              it("Emits event on increasing the allowance", async () => {
+              it("Emits an event on increasing the allowance", async () => {
                   await expect(felinaToken.increaseAllowance(user1, allowance))
                       .to.emit(felinaToken, "Approval")
                       .withArgs(deployer, user1, ethers.utils.parseEther("20").toString())
@@ -158,15 +171,15 @@ const {
                   const user1Allowance = await felinaToken.allowance(deployer, user1)
                   assert.equal(user1Allowance.toString(), ethers.utils.parseEther("15").toString())
               })
-              it("Emits event on decreasing the allowance", async () => {
+              it("Emits an event on decreasing the allowance", async () => {
                   await expect(felinaToken.decreaseAllowance(user1, substractedValue))
                       .to.emit(felinaToken, "Approval")
                       .withArgs(deployer, user1, ethers.utils.parseEther("15").toString())
               })
               it("Should revert if the substracted value exceeds the allowance", async () => {
-                  await expect(
-                      felinaToken.decreaseAllowance(user1, ethers.utils.parseEther("50"))
-                  ).to.be.revertedWith("FEL: Cannot decrease allowance to a negative value")
+                  await expect(felinaToken.decreaseAllowance(user1, ethers.utils.parseEther("50")))
+                      .to.be.revertedWithCustomError(felinaToken, "FelinaToken__Underflow")
+                      .withArgs(allowance, ethers.utils.parseEther("50"))
               })
           })
 
@@ -174,22 +187,29 @@ const {
               it("Allows to burn", async () => {
                   const amount = ethers.utils.parseEther("20")
                   const initialTotalSupply = await felinaToken.totalSupply()
-                  await felinaToken.burn(amount)
+                  const burnTxResponse = await felinaToken.burn(amount)
+                  await burnTxResponse.wait(1)
                   const endingTotalSupply = await felinaToken.totalSupply()
                   expect(endingTotalSupply.toString()).to.equal(
                       initialTotalSupply.sub(amount).toString()
                   )
               })
-              it("Emits event on burn", async () => {
+              it("Emits an event on burn", async () => {
                   const amount = ethers.utils.parseEther("20")
                   await expect(felinaToken.burn(amount))
                       .to.emit(felinaToken, "Burn")
                       .withArgs(deployer, amount)
               })
-              it("Should revert is the target supply has been reached", async () => {
-                  await felinaToken.burn(ethers.utils.parseEther("500000000"))
-                  await expect(felinaToken.burn(ethers.utils.parseEther("500"))).to.be.revertedWith(
-                      "FEL: Cannot burn more tokens"
+              it("Should revert if the value will decreased the supply below the target supply", async () => {
+                  const burnTxResponse = await felinaToken.burn(
+                      ethers.utils.parseEther("500000000")
+                  )
+                  await burnTxResponse.wait(1)
+                  await expect(
+                      felinaToken.burn(ethers.utils.parseEther("500"))
+                  ).to.be.revertedWithCustomError(
+                      felinaToken,
+                      "FelinaToken__SupplyDecreasedBelowTargetSupply"
                   )
               })
           })
@@ -198,28 +218,43 @@ const {
               let felinaTokenUser1, tokensToSpend
               beforeEach(async () => {
                   tokensToSpend = ethers.utils.parseEther("100")
-                  await felinaToken.approve(user1, tokensToSpend)
+                  const approveTxResponse = await felinaToken.approve(user1, tokensToSpend)
+                  await approveTxResponse.wait(1)
                   felinaTokenUser1 = await ethers.getContract("FelinaToken", user1)
               })
               it("Allows to burn from another account", async () => {
                   const initialTotalSupply = await felinaToken.totalSupply()
-                  await felinaTokenUser1.burnFrom(deployer, tokensToSpend)
+                  const burnFromTxResponse = await felinaTokenUser1.burnFrom(
+                      deployer,
+                      tokensToSpend
+                  )
+                  await burnFromTxResponse.wait(1)
                   const endingTotalSupply = await felinaToken.totalSupply()
                   assert.equal(
                       endingTotalSupply.toString(),
                       initialTotalSupply.sub(tokensToSpend).toString()
                   )
               })
-              it("Won't allow to burn more than the allowance", async () => {
-                  await expect(
-                      felinaTokenUser1.burnFrom(deployer, ethers.utils.parseEther("200"))
-                  ).to.be.revertedWith("FEL: Value exceeds the remaining allowance")
+              it("Should revert if the spender tries to burn an amount greater than the allowance", async () => {
+                  const allowance = await felinaToken.allowance(deployer, user1)
+                  await expect(felinaTokenUser1.burnFrom(deployer, ethers.utils.parseEther("200")))
+                      .to.be.revertedWithCustomError(
+                          felinaToken,
+                          "FelinaToken__ValueExceedsAllowance"
+                      )
+                      .withArgs(ethers.utils.parseEther("200"), allowance.toString())
               })
-              it("Should revert if the target supply has been reached", async () => {
-                  await felinaToken.burn(ethers.utils.parseEther("500000000"))
+              it("Should revert if the value will decrease the supply below the target supply", async () => {
+                  const burnTxResponse = await felinaToken.burn(
+                      ethers.utils.parseEther("500000000")
+                  )
+                  await burnTxResponse.wait(1)
                   await expect(
                       felinaTokenUser1.burnFrom(deployer, tokensToSpend)
-                  ).to.be.revertedWith("FEL: Cannot burn more tokens")
+                  ).to.be.revertedWithCustomError(
+                      felinaToken,
+                      "FelinaToken__SupplyDecreasedBelowTargetSupply"
+                  )
               })
           })
 
@@ -232,7 +267,7 @@ const {
 
           describe("getTargetSupply", () => {
               it("Should return the target supply of tokens", async () => {
-                  const targetSupply = await felinaToken.getTargetSupply()
+                  const targetSupply = await felinaToken.targetSupply()
                   assert.equal(targetSupply.toString(), ethers.utils.parseEther(TARGET_SUPPLY))
               })
           })
